@@ -1,0 +1,49 @@
+﻿<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                    xmlns:OneDriveControls="clr-namespace:OneDriveExtentions.Controls;assembly=OneDriveExtentions"
+                    xmlns:Converters="clr-namespace:OneDriveExtentions.Converters">
+
+    <Converters:ByteCountToStringConverter x:Key="ByteCountToStringConverter"/>
+    
+    <Style TargetType="OneDriveControls:OneDriveFileBrowser">
+        <Setter Property="ThemeProvider">
+            <Setter.Value>
+                <OneDriveControls:DefaultOneDriveFileBrowserThemeProvider/>
+            </Setter.Value>
+        </Setter>
+        <Setter Property="ItemTemplate">
+            <Setter.Value>
+                <DataTemplate>
+                    <Grid DataContext="{Binding}" Margin="0,6">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+                        <Grid Grid.Column="0" Background="{Binding IconBrush}" Width="{Binding IconSize.Width}" Height="{Binding IconSize.Height}"/>
+                        <StackPanel Grid.Column="1" Margin="6,0,0,0" DataContext="{Binding Item}">
+                            <TextBlock Text="{Binding Name}"/>
+                            <TextBlock Text="{Binding Path=Size, Converter={StaticResource ByteCountToStringConverter}, StringFormat='大小 {0}'}" FontSize="10"/>
+                        </StackPanel>
+                    </Grid>
+                </DataTemplate>
+            </Setter.Value>
+        </Setter>
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="OneDriveControls:OneDriveFileBrowser">
+                    <Grid Background="{TemplateBinding Background}">
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="*"/>
+                        </Grid.RowDefinitions>
+                        <OneDriveControls:OneDriveSignInButton Grid.Row="0" x:Name="SignInButton"/>
+                        <ListBox Grid.Row="1" x:Name="FileList" ItemsSource="{TemplateBinding ItemsSource}" ItemTemplate="{TemplateBinding ItemTemplate}"/>
+                        <Grid Grid.Row="1">
+                        </Grid>
+                    </Grid>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+    
+</ResourceDictionary>
