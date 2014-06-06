@@ -1,5 +1,7 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Collections.ObjectModel;
+using System.Linq;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Media;
@@ -81,20 +83,30 @@ namespace OneDriveExtentions.Controls
 
     [TemplatePart(Name = SignInButtonName, Type = typeof(OneDriveSignInButton))]
     [TemplatePart(Name = FileListName, Type = typeof(ListBox))]
-    public sealed class OneDriveFileBrowser : Control
+    [TemplatePart(Name = LoadingViewName, Type = typeof(UIElement))]
+    [TemplatePart(Name = ProgressViewName, Type = typeof(ProgressBar))]
+    public sealed partial class OneDriveFileBrowser : Control
     {
         private const string SignInButtonName = "SignInButton";
         private const string FileListName = "FileList";
+        private const string LoadingViewName = "LoadingView";
+        private const string ProgressViewName = "ProgressView";
 
         private OneDriveSignInButton SignInButton { get; set; }
 
         private ListBox FileList { get; set; }
+
+        private UIElement LoadingView { get; set; }
+
+        private ProgressBar ProgressView { get; set; }
 
         public override void OnApplyTemplate()
         {
             base.OnApplyTemplate();
             SignInButton = GetTemplateChild(SignInButtonName) as OneDriveSignInButton;
             FileList = GetTemplateChild(FileListName) as ListBox;
+            LoadingView = GetTemplateChild(LoadingViewName) as UIElement;
+            ProgressView = GetTemplateChild(ProgressViewName) as ProgressBar;
             UpdateBasicComponentsVisibility();
             if (FileList != null)
             {
@@ -102,25 +114,26 @@ namespace OneDriveExtentions.Controls
             }
         }
 
+        public OneDriveFileBrowser()
+        {
+            DefaultStyleKey = typeof(OneDriveFileBrowser);
+            ItemsSource = new ObservableCollection<OneDriveFileBrowserItem>();
+            OneDriveSession.LiveSessionChanged += OneDriveSession_LiveSessionChanged;
+            Loaded += OneDriveFileBrowser_Loaded;
+        }
+
         void FileList_SelectionChanged(object sender, SelectionChangedEventArgs e)
         {
             if (e.AddedItems != null && e.AddedItems.Count > 0)
             {
                 var item = (OneDriveFileBrowserItem) e.AddedItems[0];
-                if (item.Item is OneDriveFolder)
+                var folder = item.Item as OneDriveFolder;
+                if (folder != null)
                 {
-                    TryGetItems((OneDriveFolder) item.Item);
+                    TryGetItems(folder);
                 }
                 ((ListBox) sender).SelectedIndex = -1;
             }
-        }
-
-        public OneDriveFileBrowser()
-        {
-            DefaultStyleKey = typeof (OneDriveFileBrowser);
-            ItemsSource = new ObservableCollection<OneDriveFileBrowserItem>();
-            OneDriveSession.LiveSessionChanged+=OneDriveSession_LiveSessionChanged;
-            Loaded += OneDriveFileBrowser_Loaded;
         }
 
         void OneDriveFileBrowser_Loaded(object sender, RoutedEventArgs e)
@@ -146,43 +159,21 @@ namespace OneDriveExtentions.Controls
             }
         }
 
-        void TryGetItems()
+        void UpdateOnLoading(bool isOnLoading)
         {
-            if (OneDriveSession.IsLogged)
+            if (FileList != null)
             {
-                if (DesiredFolder == null)
-                {
-                    TryGetItems(OneDriveFolder.RootFolder);
-                }
-                else if (CurrentDisplayFolder == null || CurrentDisplayFolder.Id != DesiredFolder.Id)
-                {
-                    TryGetItems(DesiredFolder);
-                }
+                FileList.IsHitTestVisible = !isOnLoading;
+            }
+            if (LoadingView != null)
+            {
+                LoadingView.Visibility = isOnLoading ? Visibility.Visible : Visibility.Collapsed;
+            }
+            if (ProgressView != null)
+            {
+                ProgressView.IsEnabled = isOnLoading;
             }
         }
-
-        async void TryGetItems(OneDriveFolder desiredFolder)
-        {
-            DesiredFolder = desiredFolder;
-            var result = await OneDriveSession.GetLoggedClient().GetItemsInFolderAsync(DesiredFolder.Id);
-            ItemsSource.Clear();
-            if (result.IsSuccessful)
-            {
-                CurrentDisplayFolder = DesiredFolder;
-                foreach (var oneDriveItem in result.Items)
-                {
-                    ItemsSource.Add(new OneDriveFileBrowserItem(oneDriveItem, ThemeProvider));
-                }
-            }
-            else
-            {
-                
-            }
-        }
-
-        private OneDriveFolder CurrentDisplayFolder { get; set; }
-
-        private OneDriveFolder DesiredFolder { get; set; }
 
         public static readonly DependencyProperty ThemeProviderProperty = DependencyProperty.Register(
             "ThemeProvider", typeof(IOneDriveFileBrowserThemeProvider), typeof(OneDriveFileBrowser), new PropertyMetadata(default(IOneDriveFileBrowserThemeProvider)));
@@ -214,6 +205,99 @@ namespace OneDriveExtentions.Controls
             get { return (DataTemplate) GetValue(ItemTemplateProperty); }
             set { SetValue(ItemTemplateProperty, value); }
         }
+
+
+    }
+
+    /// <summary>
+    /// 导航相关
+    /// </summary>
+    partial class OneDriveFileBrowser
+    {
+        
+        private readonly Stack<OneDriveFolder> _backStack = new Stack<OneDriveFolder>();
+
+        public IReadOnlyList<OneDriveFolder> BackStack
+        {
+            get { return _backStack.ToArray(); }
+        }
+
+        public void GoToHome()
+        {
+            _backStack.Clear();
+            CurrentDisplayFolder = DesiredFolder = null;
+            TryGetItems();
+        }
+
+        public void GoBack()
+        {
+            if (_backStack.Any())
+            {
+                var back = _backStack.Pop();
+                CurrentDisplayFolder = null;
+                DesiredFolder = back;
+                TryGetItems();
+            }
+            else
+            {
+                GoToHome();
+            }
+        }
+
+        public void Refresh()
+        {
+            CurrentDisplayFolder = DesiredFolder;
+            TryGetItems(DesiredFolder);
+        }
+        
+        void TryGetItems()
+        {
+            if (OneDriveSession.IsLogged)
+            {
+                if (DesiredFolder == null)
+                {
+                    TryGetItems(OneDriveFolder.RootFolder);
+                }
+                else if (CurrentDisplayFolder == null || CurrentDisplayFolder.Id != DesiredFolder.Id)
+                {
+                    TryGetItems(DesiredFolder);
+                }
+            }
+        }
+
+        async void TryGetItems(OneDriveFolder desiredFolder)
+        {
+            UpdateOnLoading(true);
+            DesiredFolder = desiredFolder;
+            var result = await OneDriveSession.GetLoggedClient().GetItemsInFolderAsync(DesiredFolder.Id);
+            ItemsSource.Clear();
+            if (result.IsSuccessful)
+            {
+                foreach (var oneDriveItem in result.Items)
+                {
+                    ItemsSource.Add(new OneDriveFileBrowserItem(oneDriveItem, ThemeProvider));
+                }
+                if (CurrentDisplayFolder != null && CurrentDisplayFolder != DesiredFolder)
+                {
+                    _backStack.Push(CurrentDisplayFolder);
+                }
+                CurrentDisplayFolder = DesiredFolder;
+            }
+            else
+            {
+                if (NotifyNavigationError!=null)
+                {
+                    NotifyNavigationError.Invoke(this, EventArgs.Empty);
+                }
+            }
+            UpdateOnLoading(false);
+        }
+
+        private OneDriveFolder CurrentDisplayFolder { get; set; }
+
+        private OneDriveFolder DesiredFolder { get; set; }
+
+        public event EventHandler NotifyNavigationError;
 
     }
 

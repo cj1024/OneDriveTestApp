@@ -38,7 +38,18 @@
                         </Grid.RowDefinitions>
                         <OneDriveControls:OneDriveSignInButton Grid.Row="0" x:Name="SignInButton"/>
                         <ListBox Grid.Row="1" x:Name="FileList" ItemsSource="{TemplateBinding ItemsSource}" ItemTemplate="{TemplateBinding ItemTemplate}"/>
-                        <Grid Grid.Row="1">
+                        <Grid Grid.Row="0" Grid.RowSpan="2" x:Name="LoadingView" Visibility="Collapsed">
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="*"/>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="*"/>
+                            </Grid.RowDefinitions>
+                            <Grid.Background>
+                                <SolidColorBrush Color="{StaticResource PhoneChromeColor}" Opacity="0.5"/>
+                            </Grid.Background>
+                            <TextBlock Grid.Row="1" Text="Loading…" TextAlignment="Center"/>
+                            <ProgressBar Grid.Row="2" x:Name="ProgressView" Foreground="{StaticResource PhoneAccentBrush}" IsIndeterminate="True"/>
                         </Grid>
                     </Grid>
                 </ControlTemplate>
