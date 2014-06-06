@@ -5,61 +5,9 @@ using System.Linq;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Media;
-using System.Windows.Media.Imaging;
 
 namespace OneDriveExtentions.Controls
 {
-
-    public interface IOneDriveFileBrowserThemeProvider
-    {
-        Brush GetBrushForItem(OneDriveItem item);
-
-        Size GetIconSizeForItem(OneDriveItem item);
-
-    }
-
-    public class DefaultOneDriveFileBrowserThemeProvider : IOneDriveFileBrowserThemeProvider
-    {
-
-        static DefaultOneDriveFileBrowserThemeProvider()
-        {
-        }
-
-        private static readonly Brush _fileBrush = new ImageBrush
-        {
-            ImageSource = new BitmapImage(new Uri("/OneDriveExtentions;component/Icons/FileIcon.png", UriKind.Relative))
-        };
-        private static readonly Brush _filePhotoBrush = new ImageBrush
-        {
-            ImageSource = new BitmapImage(new Uri("/OneDriveExtentions;component/Icons/PhotoIcon.png", UriKind.Relative))
-        };
-        private static readonly Brush _folderBrush = new ImageBrush
-        {
-            ImageSource = new BitmapImage(new Uri("/OneDriveExtentions;component/Icons/FolderIcon.png", UriKind.Relative))
-        };
-
-        private static readonly Brush _folderEmptyBrush = new ImageBrush
-        {
-            ImageSource = new BitmapImage(new Uri("/OneDriveExtentions;component/Icons/EmptyFolderIcon.png", UriKind.Relative))
-        };
-        private static readonly Brush _folderAlbumBrush = new ImageBrush
-        {
-            ImageSource = new BitmapImage(new Uri("/OneDriveExtentions;component/Icons/AlbumFolderIcon.png", UriKind.Relative))
-        };
-
-        public Brush GetBrushForItem(OneDriveItem item)
-        {
-            return item.IsFolder ? (item.IsPhotoRelate ? _folderAlbumBrush : ((OneDriveFolder) item).Count > 0 ? _folderBrush : _folderEmptyBrush) : (item.IsPhotoRelate ? _filePhotoBrush : _fileBrush);
-        }
-
-        private static readonly Size _iconSize = new Size(48, 48);
-
-        public Size GetIconSizeForItem(OneDriveItem item)
-        {
-            return _iconSize;
-        }
-
-    }
 
     public class OneDriveFileBrowserItem
     {
@@ -85,12 +33,20 @@ namespace OneDriveExtentions.Controls
     [TemplatePart(Name = FileListName, Type = typeof(ListBox))]
     [TemplatePart(Name = LoadingViewName, Type = typeof(UIElement))]
     [TemplatePart(Name = ProgressViewName, Type = typeof(ProgressBar))]
+    [TemplatePart(Name = ControlsPanelName, Type = typeof(UIElement))]
+    [TemplatePart(Name = HomeButtonName, Type = typeof(Button))]
+    [TemplatePart(Name = BackButtonName, Type = typeof(Button))]
+    [TemplatePart(Name = RefreshButtonName, Type = typeof(Button))]
     public sealed partial class OneDriveFileBrowser : Control
     {
         private const string SignInButtonName = "SignInButton";
         private const string FileListName = "FileList";
         private const string LoadingViewName = "LoadingView";
         private const string ProgressViewName = "ProgressView";
+        private const string ControlsPanelName = "ControlsPanel";
+        private const string HomeButtonName = "HomeButton";
+        private const string BackButtonName = "BackButton";
+        private const string RefreshButtonName = "RefreshButton";
 
         private OneDriveSignInButton SignInButton { get; set; }
 
@@ -100,6 +56,14 @@ namespace OneDriveExtentions.Controls
 
         private ProgressBar ProgressView { get; set; }
 
+        private UIElement ControlsPanel { get; set; }
+
+        private Button HomeButton { get; set; }
+
+        private Button BackButton { get; set; }
+
+        private Button RefreshButton { get; set; }
+
         public override void OnApplyTemplate()
         {
             base.OnApplyTemplate();
@@ -107,10 +71,26 @@ namespace OneDriveExtentions.Controls
             FileList = GetTemplateChild(FileListName) as ListBox;
             LoadingView = GetTemplateChild(LoadingViewName) as UIElement;
             ProgressView = GetTemplateChild(ProgressViewName) as ProgressBar;
+            ControlsPanel = GetTemplateChild(ControlsPanelName) as UIElement;
+            HomeButton = GetTemplateChild(HomeButtonName) as Button;
+            BackButton = GetTemplateChild(BackButtonName) as Button;
+            RefreshButton = GetTemplateChild(RefreshButtonName) as Button;
             UpdateBasicComponentsVisibility();
             if (FileList != null)
             {
                 FileList.SelectionChanged += FileList_SelectionChanged;
+            }
+            if (HomeButton != null)
+            {
+                HomeButton.Click += (sender, e) => GoToHome();
+            }
+            if (BackButton != null)
+            {
+                BackButton.Click += (sender, e) => GoBack();
+            }
+            if (RefreshButton != null)
+            {
+                RefreshButton.Click += (sender, e) => Refresh();
             }
         }
 
@@ -131,6 +111,17 @@ namespace OneDriveExtentions.Controls
                 if (folder != null)
                 {
                     TryGetItems(folder);
+                }
+                else
+                {
+                    if (OneDriveFileSelected != null)
+                    {
+                        var file = item.Item as OneDriveFile;
+                        if (file != null)
+                        {
+                            OneDriveFileSelected.Invoke(this, file);
+                        }
+                    }
                 }
                 ((ListBox) sender).SelectedIndex = -1;
             }
@@ -156,6 +147,10 @@ namespace OneDriveExtentions.Controls
             if (FileList != null)
             {
                 FileList.Visibility = OneDriveSession.IsLogged ? Visibility.Visible : Visibility.Collapsed;
+            }
+            if (ControlsPanel != null)
+            {
+                ControlsPanel.Visibility = OneDriveSession.IsLogged ? Visibility.Visible : Visibility.Collapsed;
             }
         }
 
@@ -206,6 +201,7 @@ namespace OneDriveExtentions.Controls
             set { SetValue(ItemTemplateProperty, value); }
         }
 
+        public event EventHandler<OneDriveFile> OneDriveFileSelected;
 
     }
 
@@ -229,9 +225,14 @@ namespace OneDriveExtentions.Controls
             TryGetItems();
         }
 
+        public bool CanGoBack
+        {
+            get { return _backStack.Any(); }
+        }
+
         public void GoBack()
         {
-            if (_backStack.Any())
+            if (CanGoBack)
             {
                 var back = _backStack.Pop();
                 CurrentDisplayFolder = null;
@@ -291,6 +292,10 @@ namespace OneDriveExtentions.Controls
                 }
             }
             UpdateOnLoading(false);
+            if (BackButton != null)
+            {
+                BackButton.IsEnabled = CanGoBack;
+            }
         }
 
         private OneDriveFolder CurrentDisplayFolder { get; set; }

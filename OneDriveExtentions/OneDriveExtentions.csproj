@@ -83,12 +83,16 @@
     <WarningLevel>4</WarningLevel>
   </PropertyGroup>
   <ItemGroup>
+    <Compile Include="Controls\DefaultOneDriveFileBrowserThemeProvider.cs" />
+    <Compile Include="Controls\IOneDriveFileBrowserThemeProvider.cs" />
     <Compile Include="Controls\OneDriveFileBrowser.cs" />
     <Compile Include="Controls\OneDriveSignInButton.cs" />
     <Compile Include="Converters\ByteCountToStringConverter.cs" />
     <Compile Include="OneDriveFileSync.cs" />
     <Compile Include="OneDriveFolderInfoHelper.cs" />
-    <Compile Include="OneDriveItem.cs" />
+    <Compile Include="OneDriveItem\OneDriveItem.cs" />
+    <Compile Include="OneDriveItem\OneDriveItemReflectVisibileAttribute.cs" />
+    <Compile Include="OneDriveItem\OneDriveItemType.cs" />
     <Compile Include="OneDriveSession.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
@@ -110,6 +114,29 @@
   <ItemGroup>
     <Resource Include="Icons\FileIcon.png" />
     <Resource Include="Icons\FolderIcon.png" />
+  </ItemGroup>
+  <ItemGroup>
+    <Resource Include="Icons\NoteBookIcon.png" />
+  </ItemGroup>
+  <ItemGroup>
+    <Resource Include="Icons\FileTypeIcons\doc.png" />
+    <Resource Include="Icons\FileTypeIcons\docx.png" />
+    <Resource Include="Icons\FileTypeIcons\ppt.png" />
+    <Resource Include="Icons\FileTypeIcons\pptx.png" />
+    <Resource Include="Icons\FileTypeIcons\xls.png" />
+    <Resource Include="Icons\FileTypeIcons\xlsx.png" />
+  </ItemGroup>
+  <ItemGroup>
+    <Resource Include="Icons\FileTypeIcons\note.png" />
+  </ItemGroup>
+  <ItemGroup>
+    <Resource Include="Icons\Actions\back.png" />
+    <Resource Include="Icons\Actions\home.png" />
+    <Resource Include="Icons\Actions\refresh.png" />
+  </ItemGroup>
+  <ItemGroup>
+    <Resource Include="Icons\FileTypeIcons\code.png" />
+    <Resource Include="Icons\FileTypeIcons\web.png" />
   </ItemGroup>
   <Import Project="$(MSBuildExtensionsPath)\Microsoft\$(TargetFrameworkIdentifier)\$(TargetFrameworkVersion)\Microsoft.$(TargetFrameworkIdentifier).$(TargetFrameworkVersion).Overrides.targets" />
   <Import Project="$(MSBuildExtensionsPath)\Microsoft\$(TargetFrameworkIdentifier)\$(TargetFrameworkVersion)\Microsoft.$(TargetFrameworkIdentifier).CSharp.targets" />

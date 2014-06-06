@@ -7,38 +7,78 @@ using Microsoft.Live;
 
 namespace OneDriveExtentions
 {
-    [AttributeUsage(AttributeTargets.Property, AllowMultiple = false, Inherited = true)]
-    public class OneDriveItemReflectVisibileAttribute : Attribute
+
+    public abstract partial class OneDriveItem
     {
+
+        protected OneDriveItemType Type { get; set; }
+
+        public bool IsNoteBook
+        {
+            get { return ((int)Type & OneDriveItemTypeFlags.IsNoteBook) == OneDriveItemTypeFlags.IsNoteBook; }
+        }
+
+        public bool IsFolder
+        {
+            get { return ((int)Type & OneDriveItemTypeFlags.IsFile) != OneDriveItemTypeFlags.IsFile; }
+        }
+
+        public bool IsPhotoRelate
+        {
+            get { return ((int)Type & OneDriveItemTypeFlags.IsPhotoRelate) == OneDriveItemTypeFlags.IsPhotoRelate; }
+        }
+
+        [OneDriveItemReflectVisibileAttribute]
+        public string Id { get; protected set; }
+
+        [OneDriveItemReflectVisibile]
+        public virtual string Name { get; protected set; }
+
+        [OneDriveItemReflectVisibileAttribute]
+        public string Description { get; protected set; }
+
+        [OneDriveItemReflectVisibileAttribute]
+        public string Parent_Id { get; protected set; }
+
+        [OneDriveItemReflectVisibileAttribute]
+        public long Size { get; protected set; }
+        
+        [OneDriveItemReflectVisibileAttribute]
+        public int Comments_Count { get; protected set; }
+
+        [OneDriveItemReflectVisibileAttribute]
+        public bool Comments_Enabled { get; protected set; }
+
+        [OneDriveItemReflectVisibileAttribute]
+        public bool Is_Embeddable { get; protected set; }
+
+        [OneDriveItemReflectVisibileAttribute]
+        public string Link { get; protected set; }
+
+        [OneDriveItemReflectVisibileAttribute]
+        public DateTime Created_Time { get; protected set; }
+
+        [OneDriveItemReflectVisibileAttribute]
+        public DateTime Updated_Time { get; protected set; }
+
+        [OneDriveItemReflectVisibileAttribute]
+        public DateTime Client_Updated_Time { get; protected set; }
+
+        protected abstract IEnumerable<PropertyInfo> GetPropertyInfos();
 
     }
 
-    internal class OneDriveItemTypeFlags
-    {
-        internal const int IsNoteBook = 1;
-        internal const int IsFolder = 0 << 1;
-        internal const int IsFile = 1 << 1;
-        internal const int IsPhotoRelate = 1 << 2;
-    }
-
-    [Flags]
-    public enum OneDriveItemType
-    {
-        NoteBook = OneDriveItemTypeFlags.IsNoteBook,
-        Folder = OneDriveItemTypeFlags.IsFolder,
-        Album = OneDriveItemTypeFlags.IsFolder | OneDriveItemTypeFlags.IsPhotoRelate,
-        File = OneDriveItemTypeFlags.IsFile,
-        Photo = OneDriveItemTypeFlags.IsFile | OneDriveItemTypeFlags.IsPhotoRelate,
-    }
-
-    public abstract class OneDriveItem
+    /// <summary>
+    /// Parse Item
+    /// </summary>
+    partial class OneDriveItem
     {
 
         public static bool IsItems(LiveOperationResult result)
         {
             return result.Result.ContainsKey("data") && result.Result["data"] is IEnumerable<object>;
         }
-        
+
         public static bool IsItem(LiveOperationResult result)
         {
             return result.Result.ContainsKey("id") && result.Result.ContainsKey("type");
@@ -123,71 +163,24 @@ namespace OneDriveExtentions
             return result;
         }
 
-        protected OneDriveItemType Type { get; set; }
-
-        public bool IsNoteBook
-        {
-            get { return ((int)Type & OneDriveItemTypeFlags.IsNoteBook) == OneDriveItemTypeFlags.IsNoteBook; }
-        }
-
-        public bool IsFolder
-        {
-            get { return ((int)Type & OneDriveItemTypeFlags.IsFile) != OneDriveItemTypeFlags.IsFile; }
-        }
-
-        public bool IsPhotoRelate
-        {
-            get { return ((int)Type & OneDriveItemTypeFlags.IsPhotoRelate) == OneDriveItemTypeFlags.IsPhotoRelate; }
-        }
-
-        [OneDriveItemReflectVisibileAttribute]
-        public string Id { get; protected set; }
-
-        [OneDriveItemReflectVisibileAttribute]
-        public string Name { get; protected set; }
-
-        [OneDriveItemReflectVisibileAttribute]
-        public string Description { get; protected set; }
-
-        [OneDriveItemReflectVisibileAttribute]
-        public string Parent_Id { get; protected set; }
-
-        [OneDriveItemReflectVisibileAttribute]
-        public long Size { get; protected set; }
-        
-        [OneDriveItemReflectVisibileAttribute]
-        public int Comments_Count { get; protected set; }
-
-        [OneDriveItemReflectVisibileAttribute]
-        public bool Comments_Enabled { get; protected set; }
-
-        [OneDriveItemReflectVisibileAttribute]
-        public bool Is_Embeddable { get; protected set; }
-
-        [OneDriveItemReflectVisibileAttribute]
-        public string Link { get; protected set; }
-
-        [OneDriveItemReflectVisibileAttribute]
-        public DateTime Created_Time { get; protected set; }
-
-        [OneDriveItemReflectVisibileAttribute]
-        public DateTime Updated_Time { get; protected set; }
-
-        [OneDriveItemReflectVisibileAttribute]
-        public DateTime Client_Updated_Time { get; protected set; }
-
-        protected abstract IEnumerable<PropertyInfo> GetPropertyInfos();
-
     }
 
     public abstract class OneDriveSupportUploadItem : OneDriveItem
     {
+
         [OneDriveItemReflectVisibileAttribute]
         public string Upload_Location { get; protected set; }
+
     }
 
     public class OneDriveNoteBook : OneDriveItem
     {
+
+        internal OneDriveNoteBook()
+        {
+            Type = OneDriveItemType.NoteBook;
+        }
+
         private static IList<PropertyInfo> _propertyInfos;
 
         protected override IEnumerable<PropertyInfo> GetPropertyInfos()
@@ -269,6 +262,22 @@ namespace OneDriveExtentions
 
         [OneDriveItemReflectVisibileAttribute]
         public string Source { get; protected set; }
+
+        public string FileExtention
+        {
+            get
+            {
+                if (!string.IsNullOrEmpty(Name))
+                {
+                    var segments = Name.Split('.');
+                    if (segments.Length>1)
+                    {
+                        return segments.Last();
+                    }
+                }
+                return string.Empty;
+            }
+        }
 
         private static IList<PropertyInfo> _propertyInfos;
 
