@@ -77,7 +77,7 @@ namespace OneDriveExtentions
                     var desiredFolder = (IStorageFolder)realItem;
                     if (isRecursive)
                     {
-                        var existedFolder = onlineItems.FirstOrDefault(oitem => oitem.Name.ToUpper() == desiredFolder.Name.ToUpper() && oitem.IsFolder);
+                        var existedFolder = onlineItems.FirstOrDefault(oitem => oitem.Name.ToUpper() == desiredFolder.Name.ToUpper() && oitem.Type.HasFlag(OneDriveItemType.Folder));
                         if (existedFolder != null)
                         {
                             SyncFolderAsync(desiredFolder, existedFolder.Id, true);
@@ -95,7 +95,7 @@ namespace OneDriveExtentions
                 else if (realItem.IsOfType(StorageItemTypes.File))
                 {
                     var desiredItem = (IStorageFile)realItem;
-                    var existedItem = onlineItems.FirstOrDefault(oitem => oitem.Name.ToUpper() == desiredItem.Name.ToUpper() && !oitem.IsFolder);
+                    var existedItem = onlineItems.FirstOrDefault(oitem => oitem.Name.ToUpper() == desiredItem.Name.ToUpper() && !oitem.Type.HasFlag(OneDriveItemType.Folder));
                     if (existedItem != null)
                     {
                         SyncFile(desiredItem, targetFolderId, desiredItem.Name, queue);

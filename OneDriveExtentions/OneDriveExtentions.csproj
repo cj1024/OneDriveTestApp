@@ -86,6 +86,7 @@
     <Compile Include="Controls\DefaultOneDriveFileBrowserThemeProvider.cs" />
     <Compile Include="Controls\IOneDriveFileBrowserThemeProvider.cs" />
     <Compile Include="Controls\OneDriveFileBrowser.cs" />
+    <Compile Include="Controls\OneDriveMediaFileListItem.cs" />
     <Compile Include="Controls\OneDriveSignInButton.cs" />
     <Compile Include="Converters\ByteCountToStringConverter.cs" />
     <Compile Include="OneDriveFileSync.cs" />
@@ -137,6 +138,12 @@
   <ItemGroup>
     <Resource Include="Icons\FileTypeIcons\code.png" />
     <Resource Include="Icons\FileTypeIcons\web.png" />
+  </ItemGroup>
+  <ItemGroup>
+    <Resource Include="Icons\UnknownIcon.png" />
+  </ItemGroup>
+  <ItemGroup>
+    <Resource Include="Icons\VideoIcon.png" />
   </ItemGroup>
   <Import Project="$(MSBuildExtensionsPath)\Microsoft\$(TargetFrameworkIdentifier)\$(TargetFrameworkVersion)\Microsoft.$(TargetFrameworkIdentifier).$(TargetFrameworkVersion).Overrides.targets" />
   <Import Project="$(MSBuildExtensionsPath)\Microsoft\$(TargetFrameworkIdentifier)\$(TargetFrameworkVersion)\Microsoft.$(TargetFrameworkIdentifier).CSharp.targets" />

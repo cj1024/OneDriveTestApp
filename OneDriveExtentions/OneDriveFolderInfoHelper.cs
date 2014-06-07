@@ -83,7 +83,7 @@ namespace OneDriveExtentions
                 return new OneDriveInfoResult(false, empty);
             }
             var items = result.Items;
-            var existedFolder = items.FirstOrDefault(item => item.Name.ToUpper() == desiredFolderName.ToUpper() && item.IsFolder);
+            var existedFolder = items.FirstOrDefault(item => item.Name.ToUpper() == desiredFolderName.ToUpper() && item.Type.HasFlag(OneDriveItemType.Folder));
             if (existedFolder != null)
             {
                 return new OneDriveInfoResult(true, existedFolder);

@@ -2,22 +2,16 @@
 namespace OneDriveExtentions
 {
 
-    internal class OneDriveItemTypeFlags
-    {
-        internal const int IsNoteBook = 1;
-        internal const int IsFolder = 0 << 1;
-        internal const int IsFile = 1 << 1;
-        internal const int IsPhotoRelate = 1 << 2;
-    }
-
     [Flags]
     public enum OneDriveItemType
     {
-        NoteBook = OneDriveItemTypeFlags.IsNoteBook,
-        Folder = OneDriveItemTypeFlags.IsFolder,
-        Album = OneDriveItemTypeFlags.IsFolder | OneDriveItemTypeFlags.IsPhotoRelate,
-        File = OneDriveItemTypeFlags.IsFile,
-        Photo = OneDriveItemTypeFlags.IsFile | OneDriveItemTypeFlags.IsPhotoRelate,
+        Unknow = 0,
+        NoteBook = 1,
+        Folder = 1 << 1,
+        File = 1 << 2,
+        Album = Folder | 1,
+        Photo = File | 1,
+        Video = Photo | (1 << 1),
     }
 
 }

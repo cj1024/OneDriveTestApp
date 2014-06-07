@@ -54,6 +54,11 @@ namespace OneDriveExtentions.Controls
             ImageSource = new BitmapImage(new Uri("/OneDriveExtentions;component/Icons/PhotoIcon.png", UriKind.Relative)),
             Stretch = Stretch.UniformToFill
         };
+        private static readonly Brush _fileVideoBrush = new ImageBrush
+        {
+            ImageSource = new BitmapImage(new Uri("/OneDriveExtentions;component/Icons/VideoIcon.png", UriKind.Relative)),
+            Stretch = Stretch.UniformToFill
+        };
         private static readonly Brush _folderBrush = new ImageBrush
         {
             ImageSource = new BitmapImage(new Uri("/OneDriveExtentions;component/Icons/FolderIcon.png", UriKind.Relative)),
@@ -74,10 +79,31 @@ namespace OneDriveExtentions.Controls
             ImageSource = new BitmapImage(new Uri("/OneDriveExtentions;component/Icons/NoteBookIcon.png", UriKind.Relative)),
             Stretch = Stretch.UniformToFill
         };
+        private static readonly Brush _unknownBrush = new ImageBrush
+        {
+            ImageSource = new BitmapImage(new Uri("/OneDriveExtentions;component/Icons/UnknownIcon.png", UriKind.Relative)),
+            Stretch = Stretch.UniformToFill
+        };
 
         public Brush GetBrushForItem(OneDriveItem item)
         {
-            return item.IsNoteBook ? _notebookBrush : (item.IsFolder ? (item.IsPhotoRelate ? _folderAlbumBrush : ((OneDriveFolder) item).Count > 0 ? _folderBrush : _folderEmptyBrush) : (item.IsPhotoRelate ? _filePhotoBrush : GetIconBrushForFileType((OneDriveFile) item)));
+            switch (item.Type)
+            {
+                case OneDriveItemType.NoteBook:
+                    return _notebookBrush;
+                case OneDriveItemType.Folder:
+                    return ((OneDriveFolder)item).Count > 0 ? _folderBrush : _folderEmptyBrush;
+                case OneDriveItemType.Album:
+                    return _folderAlbumBrush;
+                case OneDriveItemType.File:
+                    return GetIconBrushForFileType((OneDriveFile)item);
+                case OneDriveItemType.Photo:
+                    return _filePhotoBrush;
+                case OneDriveItemType.Video:
+                    return _fileVideoBrush;
+                default:
+                    return _unknownBrush;
+            }
         }
 
         private static readonly Size _iconSize = new Size(48, 48);

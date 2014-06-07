@@ -2,10 +2,21 @@
                     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
                     xmlns:OneDriveControls="clr-namespace:OneDriveExtentions.Controls;assembly=OneDriveExtentions"
                     xmlns:Converters="clr-namespace:OneDriveExtentions.Converters"
-                    xmlns:System="clr-namespace:System;assembly=mscorlib">
+                    >
 
     <Converters:ByteCountToStringConverter x:Key="ByteCountToStringConverter"/>
     
+    <Style TargetType="OneDriveControls:OneDriveMediaFileListItem">
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="OneDriveControls:OneDriveMediaFileListItem">
+                    <Grid Width="{TemplateBinding Width}" Height="{TemplateBinding Height}" Background="{TemplateBinding Background}">
+                        <Image Stretch="UniformToFill" Source="{TemplateBinding ImageSource}"/>
+                    </Grid>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
     <Style TargetType="OneDriveControls:OneDriveFileBrowser">
         <Setter Property="ThemeProvider">
             <Setter.Value>
@@ -20,7 +31,7 @@
                             <ColumnDefinition Width="Auto"/>
                             <ColumnDefinition Width="*"/>
                         </Grid.ColumnDefinitions>
-                        <Grid Grid.Column="0" Background="{Binding IconBrush}" Width="{Binding IconSize.Width}" Height="{Binding IconSize.Height}"/>
+                        <OneDriveControls:OneDriveMediaFileListItem Grid.Column="0" Content="{Binding}" Background="{Binding IconBrush}" Width="{Binding IconSize.Width}" Height="{Binding IconSize.Height}"/>
                         <StackPanel Grid.Column="1" Margin="12,0,0,0" DataContext="{Binding Item}">
                             <TextBlock Text="{Binding Name}"/>
                             <TextBlock Text="{Binding Path=Size, Converter={StaticResource ByteCountToStringConverter}, StringFormat='大小 {0}'}" FontSize="10"/>

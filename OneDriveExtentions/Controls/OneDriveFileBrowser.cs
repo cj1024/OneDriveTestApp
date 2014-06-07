@@ -2,7 +2,6 @@
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Linq;
-using System.Threading;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Media;
@@ -186,7 +185,7 @@ namespace OneDriveExtentions.Controls
         public ObservableCollection<OneDriveFileBrowserItem> ItemsSource
         {
             get { return (ObservableCollection<OneDriveFileBrowserItem>) GetValue(ItemsSourceProperty); }
-            protected set { SetValue(ItemsSourceProperty, value); }
+            private set { SetValue(ItemsSourceProperty, value); }
         }
 
         public static readonly DependencyProperty ItemTemplateProperty = DependencyProperty.Register(
@@ -267,7 +266,7 @@ namespace OneDriveExtentions.Controls
             }
         }
 
-        private Token TryGetItemsCancelToken;
+        private Token _tryGetItemsCancelToken;
 
         private class Token
         {
@@ -279,11 +278,11 @@ namespace OneDriveExtentions.Controls
             UpdateOnLoading(true);
             ItemsSource.Clear();
             DesiredFolder = desiredFolder;
-            if (TryGetItemsCancelToken != null)
+            if (_tryGetItemsCancelToken != null)
             {
-                TryGetItemsCancelToken.IsCancelled = true;
+                _tryGetItemsCancelToken.IsCancelled = true;
             }
-            var token = TryGetItemsCancelToken = new Token();
+            var token = _tryGetItemsCancelToken = new Token();
             var result = await OneDriveSession.GetLoggedClient().GetItemsInFolderAsync(DesiredFolder.Id);
             if (token.IsCancelled)
             {
