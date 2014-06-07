@@ -1,4 +1,5 @@
 ﻿using System.Collections.Generic;
+using System.ComponentModel;
 using System.Windows;
 using Microsoft.Phone.Controls;
 using OneDriveExtentions;
@@ -28,5 +29,14 @@ namespace OneDriveTestApp
             var result = await OneDriveSession.GetLoggedClient().GetFolderInFolder("pathTest");
         }
 
+        protected override void OnBackKeyPress(CancelEventArgs e)
+        {
+            base.OnBackKeyPress(e);
+            if (!e.Cancel && MainPivot.SelectedIndex == 1 && OneDriveFileBrowser.CanGoBack)
+            {
+                e.Cancel = true;
+                OneDriveFileBrowser.GoBack();
+            }
+        }
     }
 }

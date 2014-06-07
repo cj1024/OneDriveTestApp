@@ -36,7 +36,7 @@
             提取属性的值。
          -->
 
-        <phone:Pivot>
+        <phone:Pivot x:Name="MainPivot">
             <phone:PivotItem>
                 <StackPanel x:Name="ContentPanel" Margin="12,0,12,0">
                     <OneDriveControls:OneDriveSignInButton/>
@@ -44,9 +44,7 @@
                 </StackPanel>
             </phone:PivotItem>
             <phone:PivotItem>
-                <OneDriveControls:OneDriveFileBrowser>
-
-                </OneDriveControls:OneDriveFileBrowser>
+                <OneDriveControls:OneDriveFileBrowser x:Name="OneDriveFileBrowser"/>
             </phone:PivotItem>
         </phone:Pivot>
         <!--ContentPanel - 在此处放置其他内容-->

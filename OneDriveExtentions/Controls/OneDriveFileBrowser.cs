@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Linq;
+using System.Threading;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Media;
@@ -266,12 +267,28 @@ namespace OneDriveExtentions.Controls
             }
         }
 
+        private Token TryGetItemsCancelToken;
+
+        private class Token
+        {
+            internal bool IsCancelled { get; set; } 
+        }
+
         async void TryGetItems(OneDriveFolder desiredFolder)
         {
             UpdateOnLoading(true);
-            DesiredFolder = desiredFolder;
-            var result = await OneDriveSession.GetLoggedClient().GetItemsInFolderAsync(DesiredFolder.Id);
             ItemsSource.Clear();
+            DesiredFolder = desiredFolder;
+            if (TryGetItemsCancelToken != null)
+            {
+                TryGetItemsCancelToken.IsCancelled = true;
+            }
+            var token = TryGetItemsCancelToken = new Token();
+            var result = await OneDriveSession.GetLoggedClient().GetItemsInFolderAsync(DesiredFolder.Id);
+            if (token.IsCancelled)
+            {
+                return;
+            }
             if (result.IsSuccessful)
             {
                 foreach (var oneDriveItem in result.Items)
