@@ -37,14 +37,29 @@
          -->
 
         <phone:Pivot x:Name="MainPivot">
-            <phone:PivotItem>
-                <StackPanel x:Name="ContentPanel" Margin="12,0,12,0">
-                    <OneDriveControls:OneDriveSignInButton/>
-                    <Button x:Name="TryButton" Content="Try" IsEnabled="False" Click="Try"/>
-                </StackPanel>
-            </phone:PivotItem>
-            <phone:PivotItem>
+            <phone:PivotItem Header="FileBrowser">
                 <OneDriveControls:OneDriveFileBrowser x:Name="OneDriveFileBrowser"/>
+            </phone:PivotItem>
+            <phone:PivotItem Header="Sync Test">
+                <Grid x:Name="ContentPanel" Margin="12,0,12,0">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="*"/>
+                        <RowDefinition Height="*"/>
+                    </Grid.RowDefinitions>
+                    <OneDriveControls:OneDriveSignInButton Grid.Row="0"/>
+                    <Grid Grid.Row="1">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+                        <Button Grid.Column="0" x:Name="TryButton" Content="Create And Sync" IsEnabled="False" Click="TryButton_OnClick"/>
+                        <Button Grid.Column="1" x:Name="ClearLocalFileButton" Content="Clear Local File" Click="ClearLocalFileButton_OnClick"/>
+                    </Grid>
+                    <ListBox Grid.Row="2" x:Name="CreateResult"/>
+                    <ListBox Grid.Row="3" x:Name="UploadResult"/>
+                </Grid>
             </phone:PivotItem>
         </phone:Pivot>
         <!--ContentPanel - 在此处放置其他内容-->

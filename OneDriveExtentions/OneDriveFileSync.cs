@@ -16,7 +16,7 @@ namespace OneDriveExtentions
 
         private static readonly OneDriveFileSync _instance = new OneDriveFileSync();
 
-        internal static OneDriveFileSync GetInstance()
+        public static OneDriveFileSync GetInstance()
         {
             return _instance;
         }
@@ -28,7 +28,7 @@ namespace OneDriveExtentions
         /// <param name="targetFolderId">OneDrive文件夹Id</param>
         /// <param name="targetFileName">OneDrive目标文件名</param>
         /// <param name="queue">同步队列</param>
-        internal void SyncFile(IStorageFile file, string targetFolderId, string targetFileName, OneDriveFileSyncQueue queue)
+        public void SyncFile(IStorageFile file, string targetFolderId, string targetFileName, OneDriveFileSyncQueue queue)
         {
             if (queue == null)
             {
@@ -51,7 +51,7 @@ namespace OneDriveExtentions
         /// <param name="isRecursive">是否递归同步子文件夹，会较慢</param>
         /// <returns>同步结果</returns>
         /// <param name="queue">同步队列</param>
-        internal async void SyncFolderAsync(IStorageFolder folder, string targetFolderId = OneDriveInfoHelper.RootFolderName, bool isRecursive = false, OneDriveFileSyncQueue queue = null)
+        public async void SyncFolderAsync(IStorageFolder folder, string targetFolderId = OneDriveInfoHelper.RootFolderName, bool isRecursive = false, OneDriveFileSyncQueue queue = null)
         {
             if (!OneDriveSession.IsLogged)
             {
@@ -96,7 +96,7 @@ namespace OneDriveExtentions
                 {
                     var desiredItem = (IStorageFile)realItem;
                     var existedItem = onlineItems.FirstOrDefault(oitem => oitem.Name.ToUpper() == desiredItem.Name.ToUpper() && !oitem.Type.HasFlag(OneDriveItemType.Folder));
-                    if (existedItem != null)
+                    if (existedItem == null)
                     {
                         SyncFile(desiredItem, targetFolderId, desiredItem.Name, queue);
                     }
@@ -187,14 +187,14 @@ namespace OneDriveExtentions
             if (OneDriveSession.IsLogged)
             {
                 var client = OneDriveSession.GetLoggedClient();
-                var _queueEnumerator = _pool.GetEnumerator();
+                var queueEnumerator = _pool.GetEnumerator();
                 if (_pool.Any())
                 {
-                    while (_queueEnumerator.MoveNext())
+                    while (queueEnumerator.MoveNext())
                     {
-                        if (_queueEnumerator.Current.Any())
+                        if (queueEnumerator.Current.Any())
                         {
-                            var task = _queueEnumerator.Current.Dequeue();
+                            var task = queueEnumerator.Current.Dequeue();
                             task.RunTaskAsync(client, succeeded =>
                                                  {
                                                      if (succeeded)
@@ -207,7 +207,7 @@ namespace OneDriveExtentions
                                                      else
                                                      {
                                                          //失败，则重新加入队列
-                                                         _queueEnumerator.Current.Enqueue(task);
+                                                         queueEnumerator.Current.Enqueue(task);
                                                      }
                                                      NotifyTryStartOneTask();
                                                  });

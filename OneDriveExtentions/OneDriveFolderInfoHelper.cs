@@ -1,4 +1,5 @@
 ﻿using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
@@ -103,8 +104,9 @@ namespace OneDriveExtentions
                 var result = await client.GetAsync(rootFolderId + ListFileCommandName, cancellationToken);
                 return new OneDriveInfoResult(true, OneDriveItem.GetItems(result));
             }
-            catch (LiveConnectException)
+            catch (LiveConnectException e)
             {
+                Debug.WriteLine(e.Message);
                 IList<OneDriveItem> empty = new OneDriveItem[0];
                 return new OneDriveInfoResult(false, empty);
             }
