@@ -77,19 +77,28 @@ namespace OneDriveExtentions
 
         public static async Task<OneDriveInfoResult> GetFolderInFolder(this LiveConnectClient client, string desiredFolderName, string rootFolderId, CancellationToken cancellationToken)
         {
-            var result = await client.GetItemsInFolderAsync(rootFolderId, cancellationToken);
-            if (!result.IsSuccessful)
+            try
             {
+                var result = await client.GetItemsInFolderAsync(rootFolderId, cancellationToken);
+                if (!result.IsSuccessful)
+                {
+                    OneDriveItem empty = new OneDriveFolder();
+                    return new OneDriveInfoResult(false, empty);
+                }
+                var items = result.Items;
+                var existedFolder = items.FirstOrDefault(item => item.Name.ToUpper() == desiredFolderName.ToUpper() && item.ItemType.HasFlag(OneDriveItemType.Folder));
+                if (existedFolder != null)
+                {
+                    return new OneDriveInfoResult(true, existedFolder);
+                }
+                return await CreateFolderInFolderAsync(client, desiredFolderName, rootFolderId, cancellationToken);
+            }
+            catch (TaskCanceledException e)
+            {
+                Debug.WriteLine(e.Message);
                 OneDriveItem empty = new OneDriveFolder();
                 return new OneDriveInfoResult(false, empty);
             }
-            var items = result.Items;
-            var existedFolder = items.FirstOrDefault(item => item.Name.ToUpper() == desiredFolderName.ToUpper() && item.Type.HasFlag(OneDriveItemType.Folder));
-            if (existedFolder != null)
-            {
-                return new OneDriveInfoResult(true, existedFolder);
-            }
-            return await CreateFolderInFolderAsync(client, desiredFolderName, rootFolderId, cancellationToken);
         }
 
         public static async Task<OneDriveInfoResult> GetItemsInFolderAsync(this LiveConnectClient client, string rootFolderId = ListFileCommandName)
@@ -101,8 +110,17 @@ namespace OneDriveExtentions
         {
             try
             {
-                var result = await client.GetAsync(rootFolderId + ListFileCommandName, cancellationToken);
-                return new OneDriveInfoResult(true, OneDriveItem.GetItems(result));
+                try
+                {
+                    var result = await client.GetAsync(rootFolderId + ListFileCommandName, cancellationToken);
+                    return new OneDriveInfoResult(true, OneDriveItem.GetItems(result));
+                }
+                catch (TaskCanceledException e)
+                {
+                    Debug.WriteLine(e.Message);
+                    IList<OneDriveItem> empty = new OneDriveItem[0];
+                    return new OneDriveInfoResult(false, empty);
+                }
             }
             catch (LiveConnectException e)
             {

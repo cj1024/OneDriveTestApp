@@ -14,6 +14,7 @@ namespace OneDriveExtentions.Controls
         internal OneDriveFileBrowserItem(OneDriveItem item, IOneDriveFileBrowserThemeProvider themeProvider)
         {
             Item = item;
+            Count = item.ItemType.HasFlag(OneDriveItemType.Folder) ? (int?)((OneDriveFolder) item).Count : null;
             if (themeProvider != null)
             {
                 IconBrush = themeProvider.GetBrushForItem(item);
@@ -22,6 +23,8 @@ namespace OneDriveExtentions.Controls
         }
 
         public OneDriveItem Item { get; private set; }
+
+        public int? Count { get; private set; }
 
         public Brush IconBrush { get; private set; }
 

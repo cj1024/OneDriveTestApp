@@ -32,9 +32,13 @@
                             <ColumnDefinition Width="*"/>
                         </Grid.ColumnDefinitions>
                         <OneDriveControls:OneDriveMediaFileListItem Grid.Column="0" Content="{Binding}" Background="{Binding IconBrush}" Width="{Binding IconSize.Width}" Height="{Binding IconSize.Height}"/>
+                        <TextBlock Grid.Column="0" HorizontalAlignment="Center" VerticalAlignment="Center" Margin="3" FontSize="12" Text="{Binding Path=Count,StringFormat='{}{0}项',TargetNullValue=''}"/>
                         <StackPanel Grid.Column="1" Margin="12,0,0,0" DataContext="{Binding Item}">
                             <TextBlock Text="{Binding Name}"/>
-                            <TextBlock Text="{Binding Path=Size, Converter={StaticResource ByteCountToStringConverter}, StringFormat='大小 {0}'}" FontSize="10"/>
+                            <TextBlock FontSize="10">
+                                <Run Text="{Binding Path=Size, Converter={StaticResource ByteCountToStringConverter}, StringFormat='大小 {0}'}"/>
+                                <Run Text="{Binding Path=Updated_Time, Converter={StaticResource ByteCountToStringConverter}, StringFormat='最后更新时间 {0:yyyy-MM-dd HH:mm:ss}'}"/>
+                            </TextBlock>
                         </StackPanel>
                     </Grid>
                 </DataTemplate>

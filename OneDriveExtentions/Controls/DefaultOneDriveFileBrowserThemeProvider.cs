@@ -54,6 +54,11 @@ namespace OneDriveExtentions.Controls
             ImageSource = new BitmapImage(new Uri("/OneDriveExtentions;component/Icons/PhotoIcon.png", UriKind.Relative)),
             Stretch = Stretch.UniformToFill
         };
+        private static readonly Brush _fileAudioBrush = new ImageBrush
+        {
+            ImageSource = new BitmapImage(new Uri("/OneDriveExtentions;component/Icons/AudioIcon.png", UriKind.Relative)),
+            Stretch = Stretch.UniformToFill
+        };
         private static readonly Brush _fileVideoBrush = new ImageBrush
         {
             ImageSource = new BitmapImage(new Uri("/OneDriveExtentions;component/Icons/VideoIcon.png", UriKind.Relative)),
@@ -87,7 +92,7 @@ namespace OneDriveExtentions.Controls
 
         public Brush GetBrushForItem(OneDriveItem item)
         {
-            switch (item.Type)
+            switch (item.ItemType)
             {
                 case OneDriveItemType.NoteBook:
                     return _notebookBrush;
@@ -99,6 +104,8 @@ namespace OneDriveExtentions.Controls
                     return GetIconBrushForFileType((OneDriveFile)item);
                 case OneDriveItemType.Photo:
                     return _filePhotoBrush;
+                case OneDriveItemType.Audio:
+                    return _fileAudioBrush;
                 case OneDriveItemType.Video:
                     return _fileVideoBrush;
                 default:

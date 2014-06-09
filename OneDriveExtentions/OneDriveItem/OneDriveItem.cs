@@ -8,62 +8,77 @@ using Microsoft.Live;
 namespace OneDriveExtentions
 {
 
-    public partial class OneDriveItem
+    public abstract class OneDriveProperty
+    {
+        
+    }
+
+    public class OneDrivePropertyFrom : OneDriveProperty
     {
 
-        internal OneDriveItem()
-        {
-            Type = OneDriveItemType.Unknow;
-        }
-
-        public OneDriveItemType Type { get; protected set; }
-
-        [OneDriveItemReflectVisibileAttribute]
-        public string Id { get; protected set; }
+        [OneDriveItemReflectVisibile]
+        public string Name { get; protected set; }
 
         [OneDriveItemReflectVisibile]
-        public virtual string Name { get; protected set; }
+        public string Id { get; protected set; }
+    }
 
-        [OneDriveItemReflectVisibileAttribute]
-        public string Description { get; protected set; }
+    public class OneDrivePropertyShare : OneDriveProperty
+    {
 
-        [OneDriveItemReflectVisibileAttribute]
-        public string Parent_Id { get; protected set; }
+        [OneDriveItemReflectVisibile]
+        public string Access { get; protected set; }
 
-        [OneDriveItemReflectVisibileAttribute]
-        public long Size { get; protected set; }
-        
-        [OneDriveItemReflectVisibileAttribute]
-        public int Comments_Count { get; protected set; }
+    }
 
-        [OneDriveItemReflectVisibileAttribute]
-        public bool Comments_Enabled { get; protected set; }
+    internal abstract class OneDriveReflector
+    {
 
-        [OneDriveItemReflectVisibileAttribute]
-        public bool Is_Embeddable { get; protected set; }
+        private readonly static IDictionary<Type, IList<PropertyInfo>> _propertyInfos = new Dictionary<Type, IList<PropertyInfo>>();
 
-        [OneDriveItemReflectVisibileAttribute]
-        public string Link { get; protected set; }
-
-        [OneDriveItemReflectVisibileAttribute]
-        public DateTime Created_Time { get; protected set; }
-
-        [OneDriveItemReflectVisibileAttribute]
-        public DateTime Updated_Time { get; protected set; }
-
-        [OneDriveItemReflectVisibileAttribute]
-        public DateTime Client_Updated_Time { get; protected set; }
-
-        private static IList<PropertyInfo> _propertyInfos;
-
-        protected virtual IEnumerable<PropertyInfo> GetPropertyInfos()
+        private static IEnumerable<PropertyInfo> GetPropertyInfos<T>(T target)
         {
-            if (_propertyInfos == null)
+            var type = target.GetType();
+            if (!_propertyInfos.ContainsKey(type))
             {
-                var type = GetType();
-                _propertyInfos = type.GetProperties().Where(p => p.GetCustomAttributes(typeof(OneDriveItemReflectVisibileAttribute), true).Length > 0).ToList();
+                var propertyInfos = type.GetProperties().Where(p => p.GetCustomAttributes(typeof(OneDriveItemReflectVisibileAttribute), true).Length > 0).ToList();
+                _propertyInfos.Add(type, propertyInfos);
             }
-            return _propertyInfos;
+            return _propertyInfos[type];
+        }
+
+        internal static void ReflectProperties<T>(ref T target, IDictionary<string, object> properties)
+        {
+            foreach (var pinfo in GetPropertyInfos(target))
+            {
+                //存在则反射
+                if (properties.ContainsKey(pinfo.Name.ToLower()))
+                {
+                    var value = properties[pinfo.Name.ToLower()];
+                    if (pinfo.PropertyType == typeof(DateTime))
+                    {
+                        value = DateTime.Parse(properties[pinfo.Name.ToLower()].ToString());
+                    }
+                    else if (pinfo.PropertyType.IsSubclassOf(typeof(OneDriveProperty)) && value is IDictionary<string, object>)
+                    {
+                        object realValue = Activator.CreateInstance(pinfo.PropertyType);
+                        ReflectProperties(ref realValue, (IDictionary<string, object>)value);
+                        value = realValue;
+                    }
+                    try
+                    {
+                        pinfo.SetValue(target, value, null);
+                    }
+                    catch (Exception e)
+                    {
+                        Debug.WriteLine(e.Message);
+                    }
+                }
+                else
+                {
+                    Debug.WriteLine("No Such Property {0} In Dictionary", pinfo.Name);
+                }
+            }
         }
 
     }
@@ -71,7 +86,7 @@ namespace OneDriveExtentions
     /// <summary>
     /// Parse Item
     /// </summary>
-    partial class OneDriveItem
+    public partial class OneDriveItem
     {
 
         public static bool IsItems(LiveOperationResult result)
@@ -124,11 +139,14 @@ namespace OneDriveExtentions
                     case "file":
                         result = new OneDriveFile();
                         break;
-                    case "video":
-                        result = new OneDriveVideo();
-                        break;
                     case "photo":
                         result = new OneDrivePhoto();
+                        break;
+                    case "audio":
+                        result = new OneDriveAudio();
+                        break;
+                    case "video":
+                        result = new OneDriveVideo();
                         break;
                     default:
                         foreach (var property in properties)
@@ -138,33 +156,70 @@ namespace OneDriveExtentions
                         result = new OneDriveItem();
                         break;
                 }
-                foreach (var pinfo in result.GetPropertyInfos())
-                {
-                    //存在则反射
-                    if (properties.ContainsKey(pinfo.Name.ToLower()))
-                    {
-                        var value = properties[pinfo.Name.ToLower()];
-                        if (pinfo.PropertyType == typeof(DateTime))
-                        {
-                            value = DateTime.Parse(properties[pinfo.Name.ToLower()].ToString());
-                        }
-                        try
-                        {
-                            pinfo.SetValue(result, value, null);
-                        }
-                        catch (Exception e)
-                        {
-                            Debug.WriteLine(e.Message);
-                        }
-                    }
-                    else
-                    {
-                        Debug.WriteLine("No Such Property {0} In Dictionary", pinfo.Name);
-                    }
-                }
+                OneDriveReflector.ReflectProperties(ref result, properties);
             }
             return result;
         }
+
+    }
+
+    /// <summary>
+    /// Properties
+    /// </summary>
+    partial class OneDriveItem
+    {
+
+        internal OneDriveItem()
+        {
+            ItemType = OneDriveItemType.Unknow;
+        }
+
+        public OneDriveItemType ItemType { get; protected set; }
+
+        [OneDriveItemReflectVisibile]
+        public string Id { get; protected set; }
+
+        [OneDriveItemReflectVisibile]
+        public OneDrivePropertyFrom From { get; protected set; }
+
+        [OneDriveItemReflectVisibile]
+        public string Name { get; protected set; }
+
+        [OneDriveItemReflectVisibile]
+        public string Description { get; protected set; }
+
+        [OneDriveItemReflectVisibile]
+        public string Parent_Id { get; protected set; }
+
+        [OneDriveItemReflectVisibile]
+        public long Size { get; protected set; }
+
+        [OneDriveItemReflectVisibile]
+        public int Comments_Count { get; protected set; }
+
+        [OneDriveItemReflectVisibile]
+        public bool Comments_Enabled { get; protected set; }
+
+        [OneDriveItemReflectVisibile]
+        public bool Is_Embeddable { get; protected set; }
+
+        [OneDriveItemReflectVisibile]
+        public string Link { get; protected set; }
+
+        [OneDriveItemReflectVisibile]
+        public string Type { get; protected set; }
+
+        [OneDriveItemReflectVisibile]
+        public OneDrivePropertyShare Shared_With { get; protected set; }
+
+        [OneDriveItemReflectVisibile]
+        public DateTime Created_Time { get; protected set; }
+
+        [OneDriveItemReflectVisibile]
+        public DateTime Updated_Time { get; protected set; }
+
+        [OneDriveItemReflectVisibile]
+        public DateTime Client_Updated_Time { get; protected set; }
 
     }
 
@@ -175,19 +230,7 @@ namespace OneDriveExtentions
 
         internal OneDriveNoteBook()
         {
-            Type = OneDriveItemType.NoteBook;
-        }
-
-        private static IList<PropertyInfo> _propertyInfos;
-
-        protected override IEnumerable<PropertyInfo> GetPropertyInfos()
-        {
-            if (_propertyInfos == null)
-            {
-                var type = GetType();
-                _propertyInfos = type.GetProperties().Where(p => p.GetCustomAttributes(typeof(OneDriveItemReflectVisibileAttribute), true).Length > 0).ToList();
-            }
-            return _propertyInfos;
+            ItemType = OneDriveItemType.NoteBook;
         }
 
     }
@@ -197,7 +240,7 @@ namespace OneDriveExtentions
     public abstract class OneDriveSupportUploadItem : OneDriveItem
     {
 
-        [OneDriveItemReflectVisibileAttribute]
+        [OneDriveItemReflectVisibile]
         public string Upload_Location { get; protected set; }
 
     }
@@ -209,7 +252,7 @@ namespace OneDriveExtentions
 
         private static readonly OneDriveFolder _rootFolder = new OneDriveFolder
         {
-            Type = OneDriveItemType.Folder,
+            ItemType = OneDriveItemType.Folder,
             Id = "me/skydrive"
         };
 
@@ -220,23 +263,11 @@ namespace OneDriveExtentions
 
         internal OneDriveFolder()
         {
-            Type = OneDriveItemType.Folder;
+            ItemType = OneDriveItemType.Folder;
         }
 
         [OneDriveItemReflectVisibile]
         public int Count { get; protected set; }
-
-        private static IList<PropertyInfo> _propertyInfos;
-
-        protected override IEnumerable<PropertyInfo> GetPropertyInfos()
-        {
-            if (_propertyInfos == null)
-            {
-                var type = GetType();
-                _propertyInfos = type.GetProperties().Where(p => p.GetCustomAttributes(typeof (OneDriveItemReflectVisibileAttribute), true).Length > 0).ToList();
-            }
-            return _propertyInfos;
-        }
 
     }
 
@@ -245,19 +276,7 @@ namespace OneDriveExtentions
 
         internal OneDriveAlbum()
         {
-            Type = OneDriveItemType.Album;
-        }
-
-        private static IList<PropertyInfo> _propertyInfos;
-
-        protected override IEnumerable<PropertyInfo> GetPropertyInfos()
-        {
-            if (_propertyInfos == null)
-            {
-                var type = GetType();
-                _propertyInfos = type.GetProperties().Where(p => p.GetCustomAttributes(typeof (OneDriveItemReflectVisibileAttribute), true).Length > 0).ToList();
-            }
-            return _propertyInfos;
+            ItemType = OneDriveItemType.Album;
         }
 
     }
@@ -271,7 +290,7 @@ namespace OneDriveExtentions
 
         internal OneDriveFile()
         {
-            Type = OneDriveItemType.File;
+            ItemType = OneDriveItemType.File;
         }
 
         [OneDriveItemReflectVisibile]
@@ -293,31 +312,29 @@ namespace OneDriveExtentions
             }
         }
 
-        private static IList<PropertyInfo> _propertyInfos;
-
-        protected override IEnumerable<PropertyInfo> GetPropertyInfos()
-        {
-            if (_propertyInfos == null)
-            {
-                var type = GetType();
-                _propertyInfos = type.GetProperties().Where(p => p.GetCustomAttributes(typeof (OneDriveItemReflectVisibileAttribute), true).Length > 0).ToList();
-            }
-            return _propertyInfos;
-        }
-
     }
 
     public abstract class OneDriveMediaFileBase : OneDriveFile
     {
 
         [OneDriveItemReflectVisibile]
+        public string Picture { get; protected set; }
+
+    }
+
+    public class OneDrivePhoto : OneDriveMediaFileBase
+    {
+
+        internal OneDrivePhoto()
+        {
+            ItemType = OneDriveItemType.Photo;
+        }
+
+        [OneDriveItemReflectVisibile]
         public int Tags_Count { get; protected set; }
 
         [OneDriveItemReflectVisibile]
         public bool Tags_Enabled { get; protected set; }
-
-        [OneDriveItemReflectVisibile]
-        public string Picture { get; protected set; }
 
         [OneDriveItemReflectVisibile]
         public int Height { get; protected set; }
@@ -327,25 +344,31 @@ namespace OneDriveExtentions
 
     }
 
-    public class OneDrivePhoto : OneDriveMediaFileBase
+    public class OneDriveAudio : OneDriveMediaFileBase
     {
 
-        internal OneDrivePhoto()
+        internal OneDriveAudio()
         {
-            Type = OneDriveItemType.Photo;
+            ItemType = OneDriveItemType.Audio;
         }
 
-        private static IList<PropertyInfo> _propertyInfos;
+        [OneDriveItemReflectVisibile]
+        public string Title { get; protected set; }
 
-        protected override IEnumerable<PropertyInfo> GetPropertyInfos()
-        {
-            if (_propertyInfos == null)
-            {
-                var type = GetType();
-                _propertyInfos = type.GetProperties().Where(p => p.GetCustomAttributes(typeof (OneDriveItemReflectVisibileAttribute), true).Length > 0).ToList();
-            }
-            return _propertyInfos;
-        }
+        [OneDriveItemReflectVisibile]
+        public string Artist { get; protected set; }
+
+        [OneDriveItemReflectVisibile]
+        public string Album { get; protected set; }
+
+        [OneDriveItemReflectVisibile]
+        public string Album_Artist { get; protected set; }
+
+        [OneDriveItemReflectVisibile]
+        public string Genre { get; protected set; }
+
+        [OneDriveItemReflectVisibile]
+        public long Duration { get; protected set; }
 
     }
 
@@ -354,26 +377,26 @@ namespace OneDriveExtentions
 
         internal OneDriveVideo()
         {
-            Type = OneDriveItemType.Video;
+            ItemType = OneDriveItemType.Video;
         }
+
+        [OneDriveItemReflectVisibile]
+        public int Tags_Count { get; protected set; }
+
+        [OneDriveItemReflectVisibile]
+        public bool Tags_Enabled { get; protected set; }
+
+        [OneDriveItemReflectVisibile]
+        public int Height { get; protected set; }
+
+        [OneDriveItemReflectVisibile]
+        public int Width { get; protected set; }
 
         [OneDriveItemReflectVisibile]
         public long Duration { get; protected set; }
 
         [OneDriveItemReflectVisibile]
         public long BitRate { get; protected set; }
-
-        private static IList<PropertyInfo> _propertyInfos;
-
-        protected override IEnumerable<PropertyInfo> GetPropertyInfos()
-        {
-            if (_propertyInfos == null)
-            {
-                var type = GetType();
-                _propertyInfos = type.GetProperties().Where(p => p.GetCustomAttributes(typeof (OneDriveItemReflectVisibileAttribute), true).Length > 0).ToList();
-            }
-            return _propertyInfos;
-        }
 
     }
 

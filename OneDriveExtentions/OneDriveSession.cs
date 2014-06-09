@@ -26,11 +26,18 @@ namespace OneDriveExtentions
             {
                 Logout();
             }
-            var authClient = new LiveAuthClient(ClientId);
-            var result = await authClient.InitializeAsync();
-            if (result.Status == LiveConnectSessionStatus.Connected && !IsLogged)
+            try
             {
-                Login(result.Session);
+                var authClient = new LiveAuthClient(ClientId);
+                var result = await authClient.InitializeAsync();
+                if (result.Status == LiveConnectSessionStatus.Connected && !IsLogged)
+                {
+                    Login(result.Session);
+                }
+            }
+            catch (LiveAuthException e)
+            {
+                Debug.WriteLine("Error Code{0}\nMessage {1}\nStackTrace {2}", e.ErrorCode, e.Message, e.StackTrace);
             }
         }
 

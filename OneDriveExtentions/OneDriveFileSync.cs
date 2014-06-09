@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.IO;
+using System.IO.IsolatedStorage;
 using System.Linq;
 using Windows.Storage;
 using Microsoft.Live;
@@ -77,7 +78,7 @@ namespace OneDriveExtentions
                     var desiredFolder = (IStorageFolder)realItem;
                     if (isRecursive)
                     {
-                        var existedFolder = onlineItems.FirstOrDefault(oitem => oitem.Name.ToUpper() == desiredFolder.Name.ToUpper() && oitem.Type.HasFlag(OneDriveItemType.Folder));
+                        var existedFolder = onlineItems.FirstOrDefault(oitem => oitem.Name.ToUpper() == desiredFolder.Name.ToUpper() && oitem.ItemType.HasFlag(OneDriveItemType.Folder));
                         if (existedFolder != null)
                         {
                             SyncFolderAsync(desiredFolder, existedFolder.Id, true);
@@ -95,10 +96,14 @@ namespace OneDriveExtentions
                 else if (realItem.IsOfType(StorageItemTypes.File))
                 {
                     var desiredItem = (IStorageFile)realItem;
-                    var existedItem = onlineItems.FirstOrDefault(oitem => oitem.Name.ToUpper() == desiredItem.Name.ToUpper() && !oitem.Type.HasFlag(OneDriveItemType.Folder));
+                    var existedItem = onlineItems.FirstOrDefault(oitem => oitem.Name.ToUpper() == desiredItem.Name.ToUpper() && !oitem.ItemType.HasFlag(OneDriveItemType.Folder));
                     if (existedItem == null)
                     {
                         SyncFile(desiredItem, targetFolderId, desiredItem.Name, queue);
+                    }
+                    else
+                    {
+                        OneDriveFileSyncPool.NotifyFileSynced(desiredItem);
                     }
                 }
             }
@@ -119,7 +124,35 @@ namespace OneDriveExtentions
             {
                 try
                 {
-                    await client.UploadAsync(FolderId, FileName, stream, OverwriteOption.Overwrite);
+                    const int backgroundTheshold = 1024*1024*100;
+                    if (stream.Length >= backgroundTheshold)
+                    {
+                        const string rootPath = "/shell/transfers";
+                        var tempFilePath = string.Format("{0}/{1}/{2}", rootPath, FolderId, FileName);
+                        using (var storage = IsolatedStorageFile.GetUserStoreForApplication())
+                        {
+                            if (!storage.DirectoryExists(rootPath))
+                            {
+                                storage.CreateDirectory(rootPath);
+                            }
+                            if (storage.FileExists(tempFilePath))
+                            {
+                                storage.DeleteFile(tempFilePath);
+                            }
+                            using (var file = storage.CreateFile(tempFilePath))
+                            {
+                                var position = stream.Position;
+                                await stream.CopyToAsync(file);
+                                stream.Position = position;
+                            }
+                        }
+                        client.BackgroundTransferPreferences = BackgroundTransferPreferences.None;
+                        await client.BackgroundUploadAsync(FolderId, new Uri(tempFilePath, UriKind.Relative), OverwriteOption.Overwrite);
+                    }
+                    else
+                    {
+                        await client.UploadAsync(FolderId, FileName, stream, OverwriteOption.Overwrite);
+                    }
                 }
                 catch (Exception)
                 {
@@ -199,10 +232,7 @@ namespace OneDriveExtentions
                                                  {
                                                      if (succeeded)
                                                      {
-                                                         if (FileSynced != null)
-                                                         {
-                                                             FileSynced.Invoke(task, task.File);
-                                                         }
+                                                         NotifyFileSynced(task.File);
                                                      }
                                                      else
                                                      {
@@ -215,6 +245,14 @@ namespace OneDriveExtentions
                         }
                     }
                 }
+            }
+        }
+
+        internal static void NotifyFileSynced(IStorageFile file)
+        {
+            if (FileSynced != null)
+            {
+                FileSynced.Invoke(null, file);
             }
         }
 
