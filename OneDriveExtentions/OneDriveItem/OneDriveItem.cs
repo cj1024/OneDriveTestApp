@@ -253,7 +253,8 @@ namespace OneDriveExtentions
         private static readonly OneDriveFolder _rootFolder = new OneDriveFolder
         {
             ItemType = OneDriveItemType.Folder,
-            Id = "me/skydrive"
+            Id = "me/skydrive",
+            Name = "OneDrive"
         };
 
         public static OneDriveFolder RootFolder

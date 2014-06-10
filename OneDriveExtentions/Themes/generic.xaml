@@ -64,6 +64,7 @@
                                 </Style>
                             </Grid.Resources>
                             <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto"/>
                                 <ColumnDefinition Width="*"/>
                                 <ColumnDefinition Width="Auto"/>
                             </Grid.ColumnDefinitions>
@@ -74,7 +75,10 @@
                                     </Button.OpacityMask>
                                 </Button>
                             </StackPanel>
-                            <StackPanel Grid.Column="1" Orientation="Horizontal">
+                            <ScrollViewer Grid.Column="1" VerticalAlignment="Center" HorizontalScrollBarVisibility="Hidden" VerticalScrollBarVisibility="Disabled">
+                                <TextBlock Text="{TemplateBinding TraceRoute}" TextAlignment="Left"/>
+                            </ScrollViewer>
+                            <StackPanel Grid.Column="2" Orientation="Horizontal">
                                 <Button x:Name="BackButton" Style="{StaticResource NavigationButtonStyle}">
                                     <Button.OpacityMask>
                                         <ImageBrush Stretch="UniformToFill" ImageSource="/OneDriveExtentions;component/Icons/Actions/back.png"/>

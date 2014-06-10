@@ -2,6 +2,8 @@
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Media;
@@ -11,6 +13,7 @@ namespace OneDriveExtentions.Controls
 
     public class OneDriveFileBrowserItem
     {
+
         internal OneDriveFileBrowserItem(OneDriveItem item, IOneDriveFileBrowserThemeProvider themeProvider)
         {
             Item = item;
@@ -105,7 +108,7 @@ namespace OneDriveExtentions.Controls
             Loaded += OneDriveFileBrowser_Loaded;
         }
 
-        void FileList_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        async void FileList_SelectionChanged(object sender, SelectionChangedEventArgs e)
         {
             if (e.AddedItems != null && e.AddedItems.Count > 0)
             {
@@ -113,7 +116,7 @@ namespace OneDriveExtentions.Controls
                 var folder = item.Item as OneDriveFolder;
                 if (folder != null)
                 {
-                    TryGetItems(folder);
+                    await TryGetItems(folder);
                 }
                 else
                 {
@@ -135,10 +138,10 @@ namespace OneDriveExtentions.Controls
             UpdateBasicComponentsVisibility();
         }
 
-        private void OneDriveSession_LiveSessionChanged(object sender, Microsoft.Live.LiveConnectClient e)
+        private async void OneDriveSession_LiveSessionChanged(object sender, Microsoft.Live.LiveConnectClient e)
         {
             UpdateBasicComponentsVisibility();
-            TryGetItems();
+            await TryGetItems();
         }
 
         void UpdateBasicComponentsVisibility()
@@ -221,11 +224,11 @@ namespace OneDriveExtentions.Controls
             get { return _backStack.ToArray(); }
         }
 
-        public void GoToHome()
+        public async void GoToHome()
         {
             _backStack.Clear();
             CurrentDisplayFolder = DesiredFolder = null;
-            TryGetItems();
+            await TryGetItems();
         }
 
         public bool CanGoBack
@@ -233,14 +236,15 @@ namespace OneDriveExtentions.Controls
             get { return _backStack.Any(); }
         }
 
-        public void GoBack()
+        public async void GoBack()
         {
             if (CanGoBack)
             {
-                var back = _backStack.Pop();
+                var back = _backStack.Pop(); ;
                 CurrentDisplayFolder = null;
                 DesiredFolder = back;
-                TryGetItems();
+                await TryGetItems();
+                
             }
             else
             {
@@ -248,23 +252,23 @@ namespace OneDriveExtentions.Controls
             }
         }
 
-        public void Refresh()
+        public async void Refresh()
         {
             CurrentDisplayFolder = DesiredFolder;
-            TryGetItems(DesiredFolder);
+            await TryGetItems(DesiredFolder);
         }
-        
-        void TryGetItems()
+
+        async Task TryGetItems()
         {
             if (OneDriveSession.IsLogged)
             {
                 if (DesiredFolder == null)
                 {
-                    TryGetItems(OneDriveFolder.RootFolder);
+                    await TryGetItems(OneDriveFolder.RootFolder);
                 }
                 else if (CurrentDisplayFolder == null || CurrentDisplayFolder.Id != DesiredFolder.Id)
                 {
-                    TryGetItems(DesiredFolder);
+                    await TryGetItems(DesiredFolder);
                 }
             }
         }
@@ -276,7 +280,7 @@ namespace OneDriveExtentions.Controls
             internal bool IsCancelled { get; set; } 
         }
 
-        async void TryGetItems(OneDriveFolder desiredFolder)
+        async Task TryGetItems(OneDriveFolder desiredFolder)
         {
             UpdateOnLoading(true);
             ItemsSource.Clear();
@@ -317,9 +321,45 @@ namespace OneDriveExtentions.Controls
             }
         }
 
-        private OneDriveFolder CurrentDisplayFolder { get; set; }
+        public static readonly DependencyProperty CurrentDisplayFolderProperty = DependencyProperty.Register(
+            "CurrentDisplayFolder", typeof (OneDriveFolder), typeof (OneDriveFileBrowser), new PropertyMetadata(default(OneDriveFolder)));
 
-        private OneDriveFolder DesiredFolder { get; set; }
+        public OneDriveFolder CurrentDisplayFolder
+        {
+            get { return (OneDriveFolder) GetValue(CurrentDisplayFolderProperty); }
+            private set
+            {
+                SetValue(CurrentDisplayFolderProperty, value);
+                if (value != null)
+                {
+                    var sb = new StringBuilder();
+                    foreach (var oneDriveFolder in BackStack.Reverse())
+                    {
+                        sb.AppendFormat("{0}\\", oneDriveFolder.Name);
+                    }
+                    sb.Append(value.Name);
+                    TraceRoute = sb.ToString();
+                }
+            }
+        }
+
+        public static readonly DependencyProperty DesiredFolderProperty = DependencyProperty.Register(
+            "DesiredFolder", typeof (OneDriveFolder), typeof (OneDriveFileBrowser), new PropertyMetadata(default(OneDriveFolder)));
+
+        public OneDriveFolder DesiredFolder
+        {
+            get { return (OneDriveFolder) GetValue(DesiredFolderProperty); }
+            private set { SetValue(DesiredFolderProperty, value); }
+        }
+
+        public static readonly DependencyProperty TraceRouteProperty = DependencyProperty.Register(
+            "TraceRoute", typeof (string), typeof (OneDriveFileBrowser), new PropertyMetadata(default(string)));
+
+        public string TraceRoute
+        {
+            get { return (string) GetValue(TraceRouteProperty); }
+            private set { SetValue(TraceRouteProperty, value); }
+        }
 
         public event EventHandler NotifyNavigationError;
 
