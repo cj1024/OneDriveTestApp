@@ -78,6 +78,10 @@ namespace OneDriveExtentions
         {
             OneDriveFileSyncPool.ClearQueue();
             LoggedClient = null;
+            if (!string.IsNullOrEmpty(ClientId))
+            {
+                (new LiveAuthClient(ClientId)).Logout();
+            }
         }
 
         public static event EventHandler<LiveConnectClient> LiveSessionChanged;
